@@ -8,17 +8,17 @@ Practice building classes that hold their own data, answer for themselves, and k
 - [Setup](#setup)
 - [Before You Start](#before-you-start)
 - [From Scratch](#from-scratch)
-  - [Question 1: `Shift`](#question-1-shift)
-  - [Question 2: `BikeDepot`](#question-2-bikedepot)
-  - [Question 3: `Student`, `Course` and `Enrollment`](#question-3-student-course-and-enrollment)
-  - [Question 4: `Volunteer` and `build_volunteers`](#question-4-volunteer-and-build_volunteers)
+  - [Question 1: `Bike`](#question-1-bike)
+  - [Question 2: `Station`](#question-2-station)
+  - [Question 3: `Ride`](#question-3-ride)
+  - [Question 4: `build_bikes`](#question-4-build_bikes)
 - [Modify](#modify)
-  - [Question 5: `PrintShop`](#question-5-printshop)
-  - [Question 6: `Sensor`](#question-6-sensor)
-  - [Question 7: `Warehouse`](#question-7-warehouse)
+  - [Question 5: `Station.repair_list`](#question-5-stationrepair_list)
+  - [Question 6: `Member` and `Ride`](#question-6-member-and-ride)
+  - [Question 7: `total_minutes`](#question-7-total_minutes)
 - [Debug](#debug)
-  - [Question 8: `Locker`](#question-8-locker)
-  - [Question 9: `Ledger`](#question-9-ledger)
+  - [Question 8: `Member`](#question-8-member)
+  - [Question 9: `Ride`](#question-9-ride)
 - [Submitting](#submitting)
 - [Good luck!](#good-luck)
 
@@ -65,9 +65,9 @@ pip install -r requirements.txt
 git checkout -b draft
 ```
 
-Run `pytest` to test the entire assignment, or `pytest -k Badge` for one
-question. Every push runs the tests on GitHub and reports your score in the
-**Actions** tab.
+Run `pytest` to test the entire assignment. To run one question, pass part of
+its name: `pytest -k Bike`. Every push runs the tests on GitHub and reports
+your score in the **Actions** tab.
 
 75% of tests passing counts as complete. Submit at that point even if it is
 not perfect. Treat submitting as a checkpoint rather than a finish line, and
@@ -91,273 +91,256 @@ This assignment has three sections:
 Functions, loops, f-strings, lists and dictionaries are all assumed here, and
 none of them are the new material. The new material is the **class**.
 
-Every question turns on **where a value lives**. A value assigned to `self`
-belongs to one instance, and a value assigned in the class body is shared by
-every instance. **Most of the bugs here are that one distinction in different
-clothes.**
+A value assigned to `self` belongs to one instance. A value assigned in the
+class body is shared by every instance that will ever exist. **Most of the
+bugs in this assignment are a value stored in the wrong one of those two
+places**, so when something reports the wrong data, start by asking which of
+the two it was assigned to.
 
 ## From Scratch
 
 Write these functions and classes in `src/from_scratch.py`.
 
-### Question 1: `Shift`
+### Question 1: `Bike`
 
-A community center schedules volunteers from a spreadsheet, and the
-coordinator cannot tell at a glance which shifts are about to run short. Write
-a class `Shift` that holds one shift and answers that question.
+Boro Bikes tracks its fleet in a spreadsheet, and a mechanic who wants today's
+repair list reads it by eye. Start the system that replaces it. Write a class
+`Bike` that holds one bike.
 
-`__init__` takes a role, a start hour, and a volunteer count, and stores all
-three on the instance. `is_short_staffed` returns `True` when the shift has
-fewer than 2 volunteers.
+`__init__` takes a serial, a station name, and whether the bike needs repair,
+and stores all three on the instance. `is_rentable` returns `True` when the
+bike does **not** need repair.
 
 ```python
-morning = Shift("greeter", 9, 3)
-morning.role                  # "greeter" — read straight off the instance
-morning.is_short_staffed()    # False — 3 volunteers is enough
-evening = Shift("kitchen", 17, 1)
-evening.is_short_staffed()    # True — 1 volunteer is fewer than 2
+good = Bike("A1", "Grand Army", False)
+good.serial            # "A1" — read straight off the instance
+good.is_rentable()     # True — nothing wrong with it
+broken = Bike("B7", "Borough Hall", True)
+broken.is_rentable()   # False — it needs repair, so nobody can take it
 ```
 
-A shift with exactly 2 volunteers is staffed, so `is_short_staffed` returns
-`False` for it.
+### Question 2: `Station`
 
-Tests: `tests/test_from_scratch.py::test_shift_stores_its_own_data`
+Boro Bikes has forty docks and a mechanic who needs one station's repair list.
+Everyone who wants that list writes the loop again, slightly differently, so
+the counts disagree. Write a class `Station` that owns its bikes and answers
+for them.
 
-### Question 2: `BikeDepot`
+**`Bike` is already written for you** in `src/from_scratch.py`.
 
-A bike share has two hundred bikes and a mechanic who needs today's repair
-list. Everyone who wants that list writes the loop again, slightly differently,
-so the counts disagree. Write `BikeDepot` to own the collection and answer for
-it.
-
-**`Bike` is already written for you** in `src/from_scratch.py`. It holds a
-serial number, a station name, and whether it needs repair.
-
-`__init__` takes no arguments and starts an empty list on the instance.
+`__init__` takes a station name and a capacity, and starts an empty list of
+bikes on the instance.
 
 | Method | Does | Returns |
 | --- | --- | --- |
-| `add(bike)` | Puts one `Bike` in the depot | Nothing |
-| `at_station(station)` | Finds every bike at that station | A **new** list of the matching `Bike` objects |
+| `dock(bike)` | Puts one `Bike` at this station | Nothing |
+| `rentable()` | Finds every bike that can be rented | A **new** list of the matching `Bike` objects |
 | `repair_list()` | Finds every bike needing repair | A **new** list of the matching `Bike` objects |
 
 ```python
-depot = BikeDepot()
-depot.add(Bike("A1", "Grand Army", True))
-depot.add(Bike("A2", "Grand Army", False))
-depot.add(Bike("B7", "Borough Hall", True))
+station = Station("Grand Army", 20)
+station.dock(Bike("A1", "Grand Army", True))
+station.dock(Bike("A2", "Grand Army", False))
 
-len(depot.at_station("Grand Army"))   # 2 — both bikes at that station
-depot.at_station("Grand Army")[0].serial
-# "A1" — the list holds Bike objects, so you can still read their attributes
-[bike.serial for bike in depot.repair_list()]
-# ["A1", "B7"] — in the order they were added
-depot.at_station("Nowhere")           # [] — no match is an empty list, not an error
+[bike.serial for bike in station.repair_list()]   # ["A1"] — only the broken one
+station.rentable()[0].serial
+# "A2" — the list holds Bike objects, so you can still read their attributes
+Station("Empty", 8).rentable()                    # [] — a new station has no bikes
 ```
 
 Both methods hand back a **new** list, so a caller who edits the result cannot
-change the depot. A `for` loop is allowed to run over an empty list, so a new
-depot needs no special case.
+change the station. A `for` loop is allowed to run over an empty list, so a
+new station needs no special case.
 
-Tests: `tests/test_from_scratch.py::test_bikedepot_filters_without_handing_over_its_list`
+### Question 3: `Ride`
 
-### Question 3: `Student`, `Course` and `Enrollment`
+Boro Bikes stores each ride's length on the member record. A member who takes
+two rides then has one length for both, and the second overwrites the first.
+The minutes belong to the pairing of a member and a bike, not to either one
+alone. Write `Member` and `Ride`.
 
-A tutoring program stores each student's grade on the student record. A
-student who takes two courses then has one grade for both, and the second
-grade overwrites the first. The grade belongs to the pairing of a student and
-a course, not to either one alone. Write all three classes.
+**`Bike` is already written for you** in `src/from_scratch.py`.
 
 | Class | `__init__` takes | Holds |
 | --- | --- | --- |
-| `Student` | a name | the name |
-| `Course` | a title | the title |
-| `Enrollment` | a `Student`, a `Course`, and a grade | both objects and the grade |
+| `Member` | a name and a ride limit | the name, the limit, and an empty list of rides |
+| `Ride` | a `Member`, a `Bike`, and minutes | both objects and the minutes |
 
-`Enrollment.summary()` returns `"<student name> — <course title>: <grade>"`.
-
-```python
-ada = Student("Ada")
-algebra = Course("Algebra")
-enrollment = Enrollment(ada, algebra, 92)
-
-enrollment.student.name      # "Ada" — reach through the enrollment to the student
-enrollment.summary()         # "Ada — Algebra: 92"
-
-geometry = Enrollment(ada, Course("Geometry"), 78)
-enrollment.grade             # 92 — still 92, because the grade is on the enrollment
-```
-
-Ada is one object held by two enrollments, so each enrollment keeps its own
-grade and neither overwrites the other.
-
-Tests: `tests/test_from_scratch.py::test_enrollment_holds_the_grade_for_the_pair`
-
-### Question 4: `Volunteer` and `build_volunteers`
-
-A program tracks volunteers in three lists lined up by position: name, hours,
-role. Someone sorts one list and not the other two, so every volunteer's hours
-now belong to someone else. Nothing errors, so the report is wrong for weeks.
-Write the class that keeps the three values together.
-
-`Volunteer.__init__` takes a name, hours, and a role, and stores all three.
-`Volunteer.is_experienced()` returns `True` at 20 hours or more.
-
-`build_volunteers(names, hours, roles)` returns a list of `Volunteer` objects,
-one per position.
+`Member.take(ride)` adds one ride to that member's list. `Ride.is_long()`
+returns `True` at 30 minutes or more, and `Ride.summary()` returns
+`"<member name> on <bike serial>: <minutes> min"`.
 
 ```python
-names = ["Ada", "Zo", "Maya"]
-hours = [40, 12, 20]
-roles = ["kitchen", "greeter", "kitchen"]
+ada = Member("Ada", 2)
+ride = Ride(ada, Bike("A1", "Grand Army", False), 45)
 
-volunteers = build_volunteers(names, hours, roles)
-volunteers[1].name            # "Zo" — name, hours and role travel together now
-volunteers[1].hours           # 12
-volunteers[2].is_experienced()  # True — 20 hours is experienced
-build_volunteers([], [], [])  # [] — three empty lists make no volunteers
+ride.member.name    # "Ada" — reach through the ride to the member
+ride.bike.serial    # "A1"
+ride.is_long()      # True — 45 minutes is a long ride
+ride.summary()      # "Ada on A1: 45 min"
+
+short = Ride(ada, Bike("A2", "Grand Army", False), 10)
+ride.minutes        # 45 — still 45, because the minutes are on the ride
 ```
 
-> Hint: `zip(names, hours, roles)` hands you one tuple per position.
+Ada is one object held by two rides, so each ride keeps its own minutes and
+neither overwrites the other.
 
-Tests: `tests/test_from_scratch.py::test_build_volunteers_keeps_the_three_values_together`
+### Question 4: `build_bikes`
+
+The fleet arrives from the vendor as three lists lined up by position:
+serials, stations, repair flags. Someone sorted the serials to find a bike and
+did not sort the other two, so every bike's station was wrong by one row and a
+van spent a morning at the wrong docks. Nothing errored, because all three
+lists were still the right length.
+
+**`Bike` is already written for you** in `src/from_scratch.py`.
+
+Write `build_bikes(serials, stations, flags)`, which returns a list of `Bike`
+objects, one per position.
+
+```python
+serials = ["A1", "A2", "B7"]
+stations = ["Grand Army", "Grand Army", "Borough Hall"]
+flags = [True, False, False]
+
+fleet = build_bikes(serials, stations, flags)
+fleet[2].serial              # "B7" — serial, station and flag travel together now
+fleet[2].station             # "Borough Hall"
+fleet[0].is_rentable()       # False — A1 needs repair
+build_bikes([], [], [])      # [] — three empty lists make no bikes
+```
+
+Sorting the list now moves all three values at once, so they cannot come
+apart.
+
+> Hint: `zip(serials, stations, flags)` hands you one tuple per position.
 
 ## Modify
 
 Change the code already in `src/modify.py`.
 
-### Question 5: `PrintShop`
+### Question 5: `Station.repair_list`
 
-`PrintShop` keeps each order as a dictionary, so a typo like
-`order["custmer"]` raises `KeyError` only when that line runs, and the rush rule
-is rewritten in every method that needs it. Do the following in
-`src/modify.py`:
+`repair_list` is meant to tell a mechanic which bikes to collect. It removes
+each broken bike from the station while reporting it, so the second call
+returns nothing and the station's own records no longer hold those bikes. A
+mechanic who refreshes the page sees an empty list and goes home.
 
-- Write `Order.__init__` to take a customer, a page count, and whether the order
-  is rush.
-- Move the rush rule onto `Order` as `is_priority()`. An order is priority when
-  it is rush, **or** over 500 pages.
-- Change `add_order` to take an `Order` and store it.
-- Change `priority_orders` to ask each order rather than read its keys.
+Change `repair_list` in `src/modify.py` so that it **returns a new list** of
+the broken `Bike` objects and leaves `self.bikes` exactly as it found it.
 
 ```python
-shop = PrintShop()
-shop.add_order(Order("Ada", 40, True))      # rush, so priority
-shop.add_order(Order("Zo", 800, False))     # not rush, but over 500 pages
-shop.add_order(Order("Maya", 20, False))    # neither
+station = Station("Grand Army", 20)
+station.dock(Bike("A1", "Grand Army", True))
+station.dock(Bike("A2", "Grand Army", False))
 
-[order.customer for order in shop.priority_orders()]
-# ["Ada", "Zo"] — Maya's small, non-rush order is left out
-shop.priority_orders()[0].page_count
-# 40 — the list holds Order objects, so you can still read their attributes
+[bike.serial for bike in station.repair_list()]   # ["A1"]
+[bike.serial for bike in station.repair_list()]   # ["A1"] — same answer twice
+len(station.bikes)                                # 2 — nothing left the station
 ```
 
-Tests: `tests/test_modify.py::test_printshop_stores_orders_as_objects`
+A method that reports should answer a question without changing what it was
+asked about, so calling it twice gives the same answer.
 
-### Question 6: `Sensor`
+### Question 6: `Member` and `Ride`
 
-A technician debugging a sensor network prints the list of sensors and gets
-this:
+`Member` keeps each ride as a dictionary, so a typo like `ride["minuts"]`
+raises `KeyError` only when that line runs, and the long-ride rule is
+rewritten in every method that needs it.
 
-```text
-[<Sensor object at 0x104e2f10>, <Sensor object at 0x104e2f50>]
-```
+**`Bike` is already written for you.** Do the following in `src/modify.py`:
 
-The addresses change on every run, so the technician cannot tell which sensor
-reported the bad reading, and ends up printing one attribute at a time to find
-out. Add a `__repr__` to `Sensor` in `src/modify.py`.
-
-`__repr__` **returns** a string naming the class and both values:
-`Sensor('roof-2', 21.5)`.
+- Write `Ride.__init__` to take a member, a bike, and the minutes.
+- Move the long-ride rule onto `Ride` as `is_long()`. A ride is long at 30
+  minutes or more.
+- Change `take` to accept a `Ride` and store it.
+- Change `long_rides` to ask each ride rather than read its keys.
 
 ```python
-roof = Sensor("roof-2", 21.5)
-repr(roof)      # "Sensor('roof-2', 21.5)" — says which sensor
-print([roof])   # [Sensor('roof-2', 21.5)] — repr is what a list shows
+ada = Member("Ada", 2)
+bike = Bike("A1", "Grand Army", False)
+ada.take(Ride(ada, bike, 45))
+ada.take(Ride(ada, bike, 10))
+
+[ride.minutes for ride in ada.long_rides()]
+# [45] — the 10-minute ride is left out
+ada.long_rides()[0].bike.serial
+# "A1" — the list holds Ride objects, so you can reach the bike through one
 ```
 
-Python calls `__repr__` for you whenever an object appears inside a
-collection, so the list becomes readable without changing the print.
+With the rule on `Ride`, changing 30 to 45 later is one edit in one class.
 
-> Hint: `{self.sensor_id!r}` puts the quotes around a string for you.
+### Question 7: `total_minutes`
 
-Tests: `tests/test_modify.py::test_sensor_repr_names_the_sensor`
+`total_minutes` bills members for their riding time. It takes two lists lined
+up by position, names and minutes. A caller who passes them in the wrong order
+gets a total and no error, because both lists are still the right length, and
+a member is billed for somebody else's ride.
 
-### Question 7: `Warehouse`
+**`Bike`, `Member` and `Ride` are already written for you.**
 
-A company opens a second warehouse. Stock received at the Bronx site now also
-shows at Queens, so the Queens manager ships an item that is three boxes away
-and the order fails.
-
-`crates` is assigned in the class body, which creates **one** list every
-instance shares. Change `Warehouse` in `src/modify.py` so each warehouse owns
-its own list.
+Change `total_minutes(rides)` to take **one list of `Ride` objects** and
+return the total minutes, counting only rides by a member who is still within
+their limit.
 
 ```python
-bronx = Warehouse("Bronx")
-queens = Warehouse("Queens")
-bronx.receive("widgets")
+ada = Member("Ada", 2)
+zo = Member("Zo", 0)
+bike = Bike("A1", "Grand Army", False)
 
-bronx.crate_count()     # 1 — the crate arrived at the Bronx
-queens.crate_count()    # 0 — and only at the Bronx
-bronx.crates is queens.crates
-# False — each warehouse holds a different list object
+total_minutes([Ride(ada, bike, 45), Ride(zo, bike, 10)])
+# 45 — Zo's limit is 0, so that ride is not billed
+total_minutes([])
+# 0 — no rides means nothing to bill
 ```
 
-A name assigned in the class body is created once, when the class is defined. A
-name assigned to `self` in `__init__` is created again for every instance.
-
-Tests: `tests/test_modify.py::test_two_warehouses_do_not_share_crates`
+Each ride already knows its member, so the function reaches the limit through
+the ride rather than being handed a second list that has to stay in step.
 
 ## Debug
 
 Fix the code in `src/debug.py`.
 
-### Question 8: `Locker`
+### Question 8: `Member`
 
-`Locker` should hold one member per locker. Every locker in a gym's report shows
-the same member instead, and it is always whoever signed up most recently.
+`Member` should hold one rider's name and limit. Every member in the roster
+shows the same name instead, and it is always whoever signed up most recently.
 
 ```python
-first = Locker(101, "Ada")
-second = Locker(102, "Zo")
+ada = Member("Ada", 2)
+zo = Member("Zo", 5)
 
-first.assigned_to
+ada.name
 # want "Ada"
-# "Zo" — creating the second locker changed the first one
-first.number
-# want 101
-# 102
+# "Zo" — creating the second member changed the first one
+ada.limit
+# want 2
+# 5
 ```
 
-`__init__` assigns to `Locker`, the class itself, rather than to `self`, the
+`__init__` assigns to `Member`, the class itself, rather than to `self`, the
 instance being created. One value written on the class is shared by every
-instance, so each new locker overwrites the last.
+instance, so each new member overwrites the last.
 
-Tests: `tests/test_debug.py::test_two_lockers_hold_separate_assignments`
+### Question 9: `Ride`
 
-### Question 9: `Ledger`
-
-`overdue` should report every unpaid invoice past its due day. It reports one.
-An accounts clerk chases that single invoice, marks it paid, runs the report
-again, and finds another — so the list looks like it is one long and never
-ends.
+Printing one ride looks right. Printing a list of them raises, and the ride
+details appear on screen before the traceback does, in a different order than
+the list.
 
 ```python
-ledger = Ledger()
-ledger.add(Entry("Ada", 40, True))     # 40 days, unpaid
-ledger.add(Entry("Zo", 5, False))      # paid
-ledger.add(Entry("Maya", 61, True))    # 61 days, unpaid
-
-[entry.client for entry in ledger.overdue()]
-# want ["Ada", "Maya"]
-# ["Ada"] — only the first match comes back
+ride = Ride(Member("Ada", 2), Bike("A1", "Grand Army", False), 45)
+print(ride)
+# Ride('Ada', 'A1', 45)  — looks correct
+print([ride])
+# Ride('Ada', 'A1', 45)
+# TypeError: __repr__ returned non-string (type NoneType)
 ```
 
-A `return` inside a loop ends the whole method, not that pass through the
-loop. The method has to finish the loop before it hands anything back.
-
-Tests: `tests/test_debug.py::test_ledger_reports_every_overdue_entry`
+A function that prints and never returns hands back `None`. Python needs
+`__repr__` to **give** it a string so that the caller can place it inside the
+list's own output.
 
 ## Submitting
 

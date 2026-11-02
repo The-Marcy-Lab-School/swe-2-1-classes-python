@@ -29,70 +29,57 @@ def assigns_in_class_body(cls):
     return names
 
 
-from debug import Entry, Ledger, Locker
+from debug import Bike, Member, Ride
 
 
 TEST_SUITE_NAME = "Debug Tests"
 
 
-def test_locker_stores_its_number_and_member():
-    """Locker - a locker reports the number and member it was created with"""
-    locker = Locker(101, "Ada")
+def test_member_stores_its_name_and_limit():
+    """Member - a member reports the name and limit it was created with"""
+    ada = Member("Ada", 2)
 
-    assert locker.number == 101
-    assert locker.assigned_to == "Ada"
-    assert locker.label() == "101: Ada"
-
-
-def test_two_lockers_hold_separate_assignments():
-    """Locker - creating a second locker leaves the first one unchanged"""
-    first = Locker(101, "Ada")
-    second = Locker(102, "Zo")
-
-    assert first.assigned_to == "Ada", \
-        "The second locker overwrote the first, so the values are on the class."
-    assert first.number == 101
-    assert second.assigned_to == "Zo"
-    assert second.number == 102
+    assert ada.name == "Ada"
+    assert ada.limit == 2
+    assert ada.label() == "Ada (2 rides)"
 
 
-def test_locker_values_live_on_the_instance():
-    """Locker - the number and member are stored on each instance"""
-    locker = Locker(101, "Ada")
+def test_two_members_hold_separate_values():
+    """Member - creating a second member leaves the first one unchanged"""
+    ada = Member("Ada", 2)
+    zo = Member("Zo", 5)
 
-    assert attributes_set_on(locker) >= {"number", "assigned_to"}, \
-        "Assign to self inside __init__, so each locker carries its own values."
-
-
-def stocked():
-    ledger = Ledger()
-    ledger.add(Entry("Ada", 40, True))
-    ledger.add(Entry("Zo", 5, False))
-    ledger.add(Entry("Maya", 61, True))
-    return ledger
+    assert ada.name == "Ada", \
+        "The second member overwrote the first, so the values are on the class."
+    assert ada.limit == 2
+    assert zo.name == "Zo"
+    assert zo.limit == 5
 
 
-def test_ledger_reports_every_overdue_entry():
-    """Ledger - overdue returns all the matches, not just the first"""
-    ledger = stocked()
+def test_member_values_live_on_the_instance():
+    """Member - the name and limit are stored on each instance"""
+    ada = Member("Ada", 2)
 
-    assert [entry.client for entry in ledger.overdue()] == ["Ada", "Maya"]
-
-
-def test_ledger_leaves_out_paid_and_recent_entries():
-    """Ledger - overdue skips paid entries and anything 30 days or newer"""
-    ledger = Ledger()
-    ledger.add(Entry("Paid", 90, False))
-    ledger.add(Entry("Edge", 30, True))
-
-    assert ledger.overdue() == []
-    assert Ledger().overdue() == []
+    assert attributes_set_on(ada) >= {"name", "limit"}, \
+        "Assign to self inside __init__, so each member carries its own values."
 
 
-def test_ledger_keeps_its_own_entries():
-    """Ledger - overdue returns a new list and leaves the ledger alone"""
-    ledger = stocked()
-    found = ledger.overdue()
+def test_ride_repr_returns_a_string():
+    """Ride - __repr__ returns the string rather than printing it"""
+    ride = Ride(Member("Ada", 2), Bike("A1", "Grand Army", False), 45)
+    text = repr(ride)
 
-    assert len(ledger.entries) == 3
-    assert found is not ledger.entries
+    assert isinstance(text, str), "__repr__ has to return the string, not print it."
+    assert "Ada" in text
+    assert "A1" in text
+    assert "45" in text
+
+
+def test_ride_list_prints_without_raising():
+    """Ride - a list of rides can be turned into a string"""
+    ada = Member("Ada", 2)
+    bike = Bike("A1", "Grand Army", False)
+    text = repr([Ride(ada, bike, 45), Ride(ada, bike, 10)])
+
+    assert "45" in text
+    assert "10" in text

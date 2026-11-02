@@ -1,37 +1,35 @@
-class Locker:
-    def __init__(self, number, assigned_to):
-        Locker.number = number
-        Locker.assigned_to = assigned_to
-
-    def label(self):
-        return f"{self.number}: {self.assigned_to}"
-
-class Entry:
+class Bike:
     """Already written for you. Do not change it."""
 
-    def __init__(self, client, days_old, unpaid):
-        self.client = client
-        self.days_old = days_old
-        self.unpaid = unpaid
+    def __init__(self, serial, station, needs_repair):
+        self.serial = serial
+        self.station = station
+        self.needs_repair = needs_repair
 
-    def is_overdue(self):
-        return self.unpaid and self.days_old > 30
+    def is_rentable(self):
+        return not self.needs_repair
 
     def __repr__(self):
-        return f"Entry({self.client!r}, {self.days_old}, {self.unpaid})"
+        return f"Bike({self.serial!r}, {self.station!r}, {self.needs_repair})"
 
 
-class Ledger:
-    def __init__(self):
-        self.entries = []
+class Member:
+    def __init__(self, name, limit):
+        Member.name = name
+        Member.limit = limit
 
-    def add(self, entry):
-        self.entries.append(entry)
+    def label(self):
+        return f"{self.name} ({self.limit} rides)"
 
-    def overdue(self):
-        found = []
-        for entry in self.entries:
-            if entry.is_overdue():
-                found.append(entry)
-                return found
-        return found
+
+class Ride:
+    def __init__(self, member, bike, minutes):
+        self.member = member
+        self.bike = bike
+        self.minutes = minutes
+
+    def is_long(self):
+        return self.minutes >= 30
+
+    def __repr__(self):
+        print(f"Ride({self.member.name!r}, {self.bike.serial!r}, {self.minutes})")

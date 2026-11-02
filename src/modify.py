@@ -1,39 +1,61 @@
-class Order:
+class Bike:
+    """Already written for you. Do not change it."""
+
+    def __init__(self, serial, station, needs_repair):
+        self.serial = serial
+        self.station = station
+        self.needs_repair = needs_repair
+
+    def is_rentable(self):
+        return not self.needs_repair
+
+    def __repr__(self):
+        return f"Bike({self.serial!r}, {self.station!r}, {self.needs_repair})"
+
+
+class Station:
+    def __init__(self, name, capacity):
+        self.name = name
+        self.capacity = capacity
+        self.bikes = []
+
+    def dock(self, bike):
+        self.bikes.append(bike)
+
+    def repair_list(self):
+        found = []
+        for bike in list(self.bikes):
+            if bike.needs_repair:
+                found.append(bike)
+                self.bikes.remove(bike)
+        return found
+
+
+class Member:
+    def __init__(self, name, limit):
+        self.name = name
+        self.limit = limit
+        self.rides = []
+
+    def take(self, member, bike, minutes):
+        self.rides.append(
+            {"member": member, "bike": bike, "minutes": minutes}
+        )
+
+    def long_rides(self):
+        found = []
+        for ride in self.rides:
+            if ride["minutes"] >= 30:
+                found.append(ride)
+        return found
+
+
+class Ride:
     """Yours to write. The tests import this name, so leave the class here."""
 
 
-class PrintShop:
-    def __init__(self):
-        self.orders = []
-
-    def add_order(self, customer, page_count, rush):
-        self.orders.append(
-            {"customer": customer, "page_count": page_count, "rush": rush}
-        )
-
-    def priority_orders(self):
-        found = []
-        for order in self.orders:
-            if order["rush"] or order["page_count"] > 500:
-                found.append(order)
-        return found
-
-class Sensor:
-    def __init__(self, sensor_id, reading):
-        self.sensor_id = sensor_id
-        self.reading = reading
-
-    def is_freezing(self):
-        return self.reading <= 0
-
-class Warehouse:
-    crates = []
-
-    def __init__(self, site):
-        self.site = site
-
-    def receive(self, item):
-        self.crates.append(item)
-
-    def crate_count(self):
-        return len(self.crates)
+def total_minutes(names, minutes):
+    total = 0
+    for index in range(len(names)):
+        total += minutes[index]
+    return total
