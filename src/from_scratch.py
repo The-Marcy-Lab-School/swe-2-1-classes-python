@@ -16,3 +16,7 @@ class Ride:
 
 def build_bikes(serials, stations, flags):
     pass
+
+
+def has_attribute(obj, name):
+    pass

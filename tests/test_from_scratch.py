@@ -29,7 +29,7 @@ def assigns_in_class_body(cls):
     return names
 
 
-from from_scratch import Bike, Member, Ride, Station, build_bikes
+from from_scratch import Bike, Member, Ride, Station, build_bikes, has_attribute
 
 
 TEST_SUITE_NAME = "From Scratch Tests"
@@ -173,3 +173,40 @@ def test_build_bikes_handles_empty_lists():
     """build_bikes - three empty lists make no bikes"""
     assert build_bikes([], [], []) == []
     assert len(build_bikes(["A1"], ["Grand Army"], [True])) == 1
+
+
+def calls_hasattr(function):
+    """Whether the function's source calls the built-in hasattr()."""
+    source = textwrap.dedent(inspect.getsource(function))
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "hasattr":
+            return True
+    return False
+
+
+def test_has_attribute_finds_instance_attributes():
+    """has_attribute - True for an attribute __init__ stored on the instance"""
+    assert has_attribute(Bike("A1", "Grand Army", False), "serial") is True
+
+
+def test_has_attribute_finds_methods():
+    """has_attribute - True for a method, which lives on the class"""
+    assert has_attribute(Bike("A1", "Grand Army", False), "is_rentable") is True, \
+        "A method is stored on the class, not on the instance, but the bike still answers to it."
+
+
+def test_has_attribute_reports_a_missing_name():
+    """has_attribute - False for a name the object does not answer to"""
+    assert has_attribute(Station("Grand Army", 20), "serial") is False
+    assert has_attribute(Bike("A1", "Grand Army", False), "minutes") is False
+
+
+def test_has_attribute_works_on_any_object():
+    """has_attribute - works on built-in values as well as your own classes"""
+    assert has_attribute("A1", "upper") is True
+    assert has_attribute([], "serial") is False
+
+
+def test_has_attribute_does_not_call_hasattr():
+    """has_attribute - finds the answer without calling hasattr()"""
+    assert not calls_hasattr(has_attribute), "Write your own check instead of calling hasattr()."

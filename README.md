@@ -214,13 +214,47 @@ build_bikes([], [], [])      # [] — three empty lists make no bikes
 Sorting the list now moves all three values at once, so they cannot come
 apart.
 
-> Hint: `zip(serials, stations, flags)` hands you one tuple per position.
+> Hint: Python's built-in `zip()` function is useful here. It pairs up the
+> values from several lists by position. Look up its syntax on
+> [W3Schools](https://www.w3schools.com/python/ref_func_zip.asp) before you use
+> it.
+
+### Question 5: `has_attribute`
+
+Boro Bikes' nightly report loops over one list holding bikes, stations and
+members, and prints each object's serial. Stations and members do not have a
+serial, so the report crashes with an `AttributeError` at the first station it
+reaches, and nobody gets a report that night.
+
+Python has a built-in function that answers "does this object have this
+attribute?": `hasattr()`. Read about it on
+[W3Schools](https://www.w3schools.com/python/ref_func_hasattr.asp) first. Then
+write your own version, so that you know where its answer comes from.
+
+This question uses your `Bike` and `Station` from Questions 1 and 2.
+
+Write `has_attribute(obj, name)`, which returns `True` when `obj` answers to an
+attribute or a method called `name`, and `False` when it does not. **Do not
+call `hasattr()`.**
+
+```python
+bike = Bike("A1", "Grand Army", False)
+station = Station("Grand Army", 20)
+
+has_attribute(bike, "serial")         # True — __init__ stored it on the bike
+has_attribute(bike, "is_rentable")    # True — a method counts too
+has_attribute(station, "serial")      # False — a station has no serial
+has_attribute("A1", "upper")          # True — it works on any object, not only yours
+```
+
+With `has_attribute`, the report can ask each object before reading its
+serial, so a station is skipped instead of crashing the loop.
 
 ## Modify
 
 Change the code already in `src/modify.py`.
 
-### Question 5: `Station.repair_list`
+### Question 6: `Station.repair_list`
 
 `repair_list` is meant to tell a mechanic which bikes to collect. It removes
 each broken bike from the station while reporting it, so the second call
@@ -243,7 +277,7 @@ len(station.bikes)                                # 2 — nothing left the stati
 A method that reports should answer a question without changing what it was
 asked about, so calling it twice gives the same answer.
 
-### Question 6: `Member` and `Ride`
+### Question 7: `Member` and `Ride`
 
 `Member` keeps each ride as a dictionary, so a typo like `ride["minuts"]`
 raises `KeyError` only when that line runs, and the long-ride rule is
@@ -271,7 +305,7 @@ ada.long_rides()[0].bike.serial
 
 With the rule on `Ride`, changing 30 to 45 later is one edit in one class.
 
-### Question 7: `total_minutes`
+### Question 8: `total_minutes`
 
 `total_minutes` bills members for their riding time. It takes two lists lined
 up by position, names and minutes. A caller who passes them in the wrong order
@@ -302,7 +336,7 @@ the ride rather than being handed a second list that has to stay in step.
 
 Fix the code in `src/debug.py`.
 
-### Question 8: `Member`
+### Question 9: `Member`
 
 `Member` should hold one rider's name and limit. Every member in the roster
 shows the same name instead, and it is always whoever signed up most recently.
@@ -323,7 +357,7 @@ ada.limit
 instance being created. One value written on the class is shared by every
 instance, so each new member overwrites the last.
 
-### Question 9: `Ride`
+### Question 10: `Ride`
 
 Printing one ride looks right. Printing a list of them raises, and the ride
 details appear on screen before the traceback does, in a different order than
