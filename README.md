@@ -7,18 +7,22 @@ Practice building classes that hold their own data, answer for themselves, and k
 - [AI Use on This Assignment](#ai-use-on-this-assignment)
 - [Setup](#setup)
 - [Before You Start](#before-you-start)
+  - [Ideas to look for](#ideas-to-look-for)
+  - [Syntax to recognize](#syntax-to-recognize)
+  - [Look these up yourself](#look-these-up-yourself)
 - [From Scratch](#from-scratch)
   - [Question 1: `Bike`](#question-1-bike)
   - [Question 2: `Station`](#question-2-station)
   - [Question 3: `Ride`](#question-3-ride)
   - [Question 4: `build_bikes`](#question-4-build_bikes)
+  - [Question 5: `has_attribute`](#question-5-has_attribute)
 - [Modify](#modify)
-  - [Question 5: `Station.repair_list`](#question-5-stationrepair_list)
-  - [Question 6: `Member` and `Ride`](#question-6-member-and-ride)
-  - [Question 7: `total_minutes`](#question-7-total_minutes)
+  - [Question 6: `Station.repair_list`](#question-6-stationrepair_list)
+  - [Question 7: `Member` and `Ride`](#question-7-member-and-ride)
+  - [Question 8: `total_minutes`](#question-8-total_minutes)
 - [Debug](#debug)
-  - [Question 8: `Member`](#question-8-member)
-  - [Question 9: `Ride`](#question-9-ride)
+  - [Question 9: `Member`](#question-9-member)
+  - [Question 10: `Ride`](#question-10-ride)
 - [Submitting](#submitting)
 - [Good luck!](#good-luck)
 
@@ -82,20 +86,52 @@ deactivate
 
 ## Before You Start
 
+Skim this section before you read the lessons, so you know what to look for in them. Functions, loops, f-strings, lists and dictionaries are assumed. The new material is the **class**.
+
 This assignment has three sections:
 
 1. From Scratch
 2. Modify
 3. Debug
 
-Functions, loops, f-strings, lists and dictionaries are all assumed here, and
-none of them are the new material. The new material is the **class**.
+### Ideas to look for
 
-A value assigned to `self` belongs to one instance. A value assigned in the
-class body is shared by every instance that will ever exist. **Most of the
-bugs in this assignment are a value stored in the wrong one of those two
-places**, so when something reports the wrong data, start by asking which of
-the two it was assigned to.
+Each question depends on one or more of these ideas. Part of the work is deciding which.
+
+| Idea                                                                                                                                                                                                                                       | Lesson |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| A class is a blueprint for making objects. Calling it, as in `Bike("A1", "Grand Army", False)`, makes an object called an instance, and `__init__` stores the values you passed in on that instance.                                       | 2.1    |
+| When you call `bike.is_rentable()`, Python passes `bike` into the method as its first parameter, `self`.                                                                                                                                   | 2.1    |
+| Keep a rule and the data it is about within the same class: a bike answers whether _it_ can be rented.                                                                                                                                     | 2.1    |
+| Values that describe the same thing go in one object as attributes, not in separate lists lined up by position.                                                                                                                            | 2.1    |
+| A value assigned to `self`, as in `self.serial = serial`, belongs to one instance. A value assigned to the class itself is shared by every instance. Most bugs in this assignment are a value stored in the wrong one of those two places. | 2.2    |
+| An object can hold other objects as attributes, and you reach the inner object's data with more dots: `ride.member.name`.                                                                                                                  | 2.2    |
+| A method that reports on an object's data should return a new list and leave the object's own list unchanged.                                                                                                                              | 2.2    |
+| `__repr__`, the method Python calls to show an object as text, must return a string, not print one.                                                                                                                                        | 2.2    |
+| A method is stored on the class, not on each instance. `dir()` lists every attribute and method an object can use, including the ones stored on its class.                                                                                 | 2.2    |
+
+### Syntax to recognize
+
+```python
+class Bike:                                  # define a class
+    def __init__(self, serial, station):     # runs when an instance is made
+        self.serial = serial                 # store data on this instance
+
+    def is_rentable(self):                   # a method: self is the instance
+        return not self.needs_repair
+
+bike = Bike("A1", "Grand Army")              # make an instance
+bike.is_rentable()                           # call a method on it
+ride.member.name                             # reach through one object to another
+[bike for bike in self.bikes if ...]         # a new list of matching objects
+```
+
+### Look these up yourself
+
+No lesson teaches these two built-in functions, and this assignment needs both:
+
+- `zip()`. Read about it on [W3Schools](https://www.w3schools.com/python/ref_func_zip.asp).
+- `hasattr()`. Read about it on [W3Schools](https://www.w3schools.com/python/ref_func_hasattr.asp).
 
 ## From Scratch
 
@@ -131,11 +167,11 @@ for them.
 `__init__` takes a station name and a capacity, and starts an empty list of
 bikes on the instance.
 
-| Method | Does | Returns |
-| --- | --- | --- |
-| `dock(bike)` | Puts one `Bike` at this station | Nothing |
-| `rentable()` | Finds every bike that can be rented | A **new** list of the matching `Bike` objects |
-| `repair_list()` | Finds every bike needing repair | A **new** list of the matching `Bike` objects |
+| Method          | Does                                | Returns                                       |
+| --------------- | ----------------------------------- | --------------------------------------------- |
+| `dock(bike)`    | Puts one `Bike` at this station     | Nothing                                       |
+| `rentable()`    | Finds every bike that can be rented | A **new** list of the matching `Bike` objects |
+| `repair_list()` | Finds every bike needing repair     | A **new** list of the matching `Bike` objects |
 
 ```python
 station = Station("Grand Army", 20)
@@ -161,10 +197,10 @@ alone. Write `Member` and `Ride`.
 
 **`Bike` is already written for you** in `src/from_scratch.py`.
 
-| Class | `__init__` takes | Holds |
-| --- | --- | --- |
-| `Member` | a name and a ride limit | the name, the limit, and an empty list of rides |
-| `Ride` | a `Member`, a `Bike`, and minutes | both objects and the minutes |
+| Class    | `__init__` takes                  | Holds                                           |
+| -------- | --------------------------------- | ----------------------------------------------- |
+| `Member` | a name and a ride limit           | the name, the limit, and an empty list of rides |
+| `Ride`   | a `Member`, a `Bike`, and minutes | both objects and the minutes                    |
 
 `Member.take(ride)` adds one ride to that member's list. `Ride.is_long()`
 returns `True` at 30 minutes or more, and `Ride.summary()` returns
