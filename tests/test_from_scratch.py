@@ -12,28 +12,38 @@ def attributes_set_on(instance):
     return set(vars(instance))
 
 
-def assigns_in_class_body(cls):
-    """The names assigned directly in a class body, read with the ast module.
+def calls_hasattr(function):
+    """Whether the function's source calls the built-in hasattr()."""
+    source = textwrap.dedent(inspect.getsource(function))
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "hasattr":
+            return True
+    return False
 
-    The source is parsed rather than searched as text, so a name mentioned in a
-    comment or a docstring never counts.
+
+class FakeBike:
+    """A stand-in whose flag says one thing and whose method says another.
+
+    A Station that asks each bike is_rentable() follows the method. One that
+    reads needs_repair itself follows the flag, and these tests can tell which.
     """
-    source = textwrap.dedent(inspect.getsource(cls))
-    body = ast.parse(source).body[0].body
-    names = set()
-    for node in body:
-        if isinstance(node, ast.Assign):
-            names.update(t.id for t in node.targets if isinstance(t, ast.Name))
-        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-            names.add(node.target.id)
-    return names
+
+    def __init__(self, serial, rentable):
+        self.serial = serial
+        self.needs_repair = rentable  # deliberately the opposite of what is_rentable() says
+        self._rentable = rentable
+
+    def is_rentable(self):
+        return self._rentable
 
 
-from from_scratch import Bike, Member, Ride, Station, build_bikes, has_attribute
+from from_scratch import Bike, Member, Ride, Station, has_attribute
 
 
 TEST_SUITE_NAME = "From Scratch Tests"
 
+
+# ---------- Question 1: Bike ----------
 
 def test_bike_stores_its_own_data():
     """Bike - __init__ stores the serial, station and repair flag on the instance"""
@@ -47,7 +57,7 @@ def test_bike_stores_its_own_data():
 
 
 def test_bike_reports_whether_it_can_be_rented():
-    """Bike - is_rentable is False when the bike needs repair"""
+    """Bike - is_rentable is True only when the bike does not need repair"""
     assert Bike("A1", "Grand Army", False).is_rentable() is True
     assert Bike("B7", "Borough Hall", True).is_rentable() is False
 
@@ -62,127 +72,122 @@ def test_two_bikes_hold_separate_data():
     assert good.is_rentable() != broken.is_rentable()
 
 
-def stocked_dock():
+# ---------- Question 2: A Bike That Prints and Compares ----------
+
+def test_bike_repr_names_the_bike():
+    """Bike.__repr__ - returns the class name and all three values"""
+    bike = Bike("A1", "Grand Army", False)
+
+    assert repr(bike) == "Bike('A1', 'Grand Army', False)"
+    assert repr([bike]) == "[Bike('A1', 'Grand Army', False)]", \
+        "__repr__ has to return the text, so that a list of bikes can show it too."
+
+
+def test_bikes_with_the_same_serial_are_equal():
+    """Bike.__eq__ - two bikes with the same serial are ==, but are not the same object"""
+    first_report = Bike("A1", "Grand Army", False)
+    second_report = Bike("A1", "Borough Hall", True)
+
+    assert first_report == second_report
+    assert first_report is not second_report
+
+
+def test_bikes_with_different_serials_are_not_equal():
+    """Bike.__eq__ - two bikes with different serials are not =="""
+    assert Bike("A1", "Grand Army", False) != Bike("A2", "Grand Army", False)
+
+
+# ---------- Question 3: Station ----------
+
+def test_station_starts_empty_and_docks_bikes():
+    """Station - __init__ stores the name and capacity, and dock() adds a bike"""
+    station = Station("Grand Army", 20)
+    bike = Bike("A1", "Grand Army", False)
+
+    assert station.name == "Grand Army"
+    assert station.capacity == 20
+    assert station.bikes == []
+
+    station.dock(bike)
+    assert len(station.bikes) == 1
+    assert station.bikes[0] is bike
+
+
+def test_rentable_and_repair_list_return_new_lists():
+    """Station - rentable() and repair_list() return new lists and leave the station's bikes alone"""
     station = Station("Grand Army", 20)
     station.dock(Bike("A1", "Grand Army", True))
     station.dock(Bike("A2", "Grand Army", False))
-    station.dock(Bike("A3", "Grand Army", False))
-    return station
 
-
-def test_station_stores_the_bikes_it_is_given():
-    """Station - dock stores Bike objects, not copies of their data"""
-    station = Station("Grand Army", 20)
-    first = Bike("A1", "Grand Army", False)
-    station.dock(first)
-
-    found = station.rentable()
-    assert len(found) == 1
-    assert isinstance(found[0], Bike), \
-        "The station holds Bike objects, so what comes back is a Bike."
-    assert found[0] is first
-
-
-def test_station_filters_without_handing_over_its_list():
-    """Station - rentable returns a new list and leaves the station's list alone"""
-    station = stocked_dock()
-
-    rentable = station.rentable()
-    assert [bike.serial for bike in rentable] == ["A2", "A3"]
-    assert rentable is not station.bikes, \
-        "Build a new list. Handing back the station's own list lets a caller edit it."
-
-    rentable.clear()
-    assert len(station.rentable()) == 2, \
-        "Clearing the returned list emptied the station, so the same list was handed over."
-
-
-def test_station_handles_an_empty_dock_and_the_repair_list():
-    """Station - repair_list finds the broken bikes, and a new station returns []"""
-    station = stocked_dock()
-
+    assert [bike.serial for bike in station.rentable()] == ["A2"]
     assert [bike.serial for bike in station.repair_list()] == ["A1"]
-    assert Station("Empty", 8).rentable() == []
-    assert Station("Empty", 8).repair_list() == []
+
+    station.rentable().clear()
+    assert len(station.bikes) == 2, "Return a new list, so a caller who changes it cannot change the station."
 
 
-def test_ride_holds_both_objects():
-    """Ride - stores the Member and the Bike themselves, not their values"""
-    ada = Member("Ada", 2)
+def test_station_asks_each_bike():
+    """Station - asks each bike is_rentable() instead of reading its needs_repair flag"""
+    station = Station("Grand Army", 20)
+    station.dock(FakeBike("A1", rentable=True))
+    station.dock(FakeBike("A2", rentable=False))
+
+    assert [bike.serial for bike in station.rentable()] == ["A1"], \
+        "Ask each bike bike.is_rentable(); the rule lives in Bike."
+    assert [bike.serial for bike in station.repair_list()] == ["A2"]
+
+
+def test_new_station_has_no_bikes_to_list():
+    """Station - a new station returns empty lists"""
+    station = Station("Empty", 8)
+
+    assert station.rentable() == []
+    assert station.repair_list() == []
+
+
+# ---------- Question 4: Member and Ride ----------
+
+def test_member_stores_its_name():
+    """Member - __init__ stores the name on the instance"""
+    ada = Member("Ada")
+
+    assert ada.name == "Ada"
+    assert "name" in attributes_set_on(ada)
+
+
+def test_ride_holds_a_member_and_a_bike():
+    """Ride - holds the Member object and the Bike object themselves, plus the minutes"""
+    ada = Member("Ada")
     bike = Bike("A1", "Grand Army", False)
     ride = Ride(ada, bike, 45)
 
-    assert ride.member is ada, \
-        "Store the Member object, so a change to the member shows up here."
-    assert ride.bike is bike
-    assert ride.member.name == "Ada"
-    assert ride.bike.serial == "A1"
+    assert ride.member is ada, "Store the whole Member object, not just its name."
+    assert ride.bike is bike, "Store the whole Bike object, not just its serial."
+    assert ride.minutes == 45
 
 
-def test_ride_holds_the_minutes_for_the_pair():
-    """Ride - two rides by one member keep separate minutes"""
-    ada = Member("Ada", 2)
-    long_ride = Ride(ada, Bike("A1", "Grand Army", False), 45)
-    short_ride = Ride(ada, Bike("A2", "Grand Army", False), 10)
+def test_ride_reports_whether_it_is_long():
+    """Ride - is_long() is True at 30 minutes or more"""
+    ada = Member("Ada")
+    bike = Bike("A1", "Grand Army", False)
 
-    assert long_ride.minutes == 45
-    assert short_ride.minutes == 10
-    assert not hasattr(ada, "minutes"), \
-        "The minutes belong to the ride. A member taking two rides has two."
+    assert Ride(ada, bike, 30).is_long() is True
+    assert Ride(ada, bike, 29).is_long() is False
 
 
-def test_ride_reports_its_length_and_summary():
-    """Ride - is_long starts at 30 minutes, and summary names both objects"""
-    ada = Member("Ada", 2)
-    assert Ride(ada, Bike("A1", "X", False), 30).is_long() is True
-    assert Ride(ada, Bike("A1", "X", False), 29).is_long() is False
+def test_ride_summary_reaches_through_its_objects():
+    """Ride - summary() reads the member's name and the bike's serial through the ride"""
+    ada = Member("Ada")
+    ride = Ride(ada, Bike("A1", "Grand Army", False), 45)
 
-    text = Ride(Member("Zo", 2), Bike("B7", "Borough Hall", False), 12).summary()
-    assert "Zo" in text
-    assert "B7" in text
-    assert "12" in text
+    assert ride.summary() == "Ada on A1: 45 min"
 
-
-SERIALS = ["A1", "A2", "B7"]
-STATIONS = ["Grand Army", "Grand Army", "Borough Hall"]
-FLAGS = [True, False, False]
+    ada.name = "Ada L."
+    assert ride.summary() == "Ada L. on A1: 45 min", \
+        "Read self.member.name when summary() runs, so the ride always shows the member's current name."
 
 
-def test_build_bikes_returns_one_bike_per_position():
-    """build_bikes - returns Bike objects with the matching three values"""
-    fleet = build_bikes(SERIALS, STATIONS, FLAGS)
-
-    assert len(fleet) == 3
-    assert all(isinstance(bike, Bike) for bike in fleet), \
-        "Return Bike objects, not tuples or dictionaries."
-    assert fleet[2].serial == "B7"
-    assert fleet[2].station == "Borough Hall"
-    assert fleet[2].needs_repair is False
-
-
-def test_build_bikes_survives_sorting():
-    """build_bikes - sorting the result keeps each bike's values together"""
-    fleet = build_bikes(SERIALS, STATIONS, FLAGS)
-    fleet.sort(key=lambda bike: bike.serial, reverse=True)
-
-    assert fleet[0].serial == "B7"
-    assert fleet[0].station == "Borough Hall"
-
-
-def test_build_bikes_handles_empty_lists():
-    """build_bikes - three empty lists make no bikes"""
-    assert build_bikes([], [], []) == []
-    assert len(build_bikes(["A1"], ["Grand Army"], [True])) == 1
-
-
-def calls_hasattr(function):
-    """Whether the function's source calls the built-in hasattr()."""
-    source = textwrap.dedent(inspect.getsource(function))
-    for node in ast.walk(ast.parse(source)):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "hasattr":
-            return True
-    return False
-
+# ---------- Question 5: has_attribute ----------
 
 def test_has_attribute_finds_instance_attributes():
     """has_attribute - True for an attribute __init__ stored on the instance"""
@@ -190,13 +195,13 @@ def test_has_attribute_finds_instance_attributes():
 
 
 def test_has_attribute_finds_methods():
-    """has_attribute - True for a method, which lives on the class"""
+    """has_attribute - True for a method, which is stored on the class"""
     assert has_attribute(Bike("A1", "Grand Army", False), "is_rentable") is True, \
-        "A method is stored on the class, not on the instance, but the bike still answers to it."
+        "A method is stored on the class, not on the instance, but the bike can still use it."
 
 
 def test_has_attribute_reports_a_missing_name():
-    """has_attribute - False for a name the object does not answer to"""
+    """has_attribute - False for a name the object does not have"""
     assert has_attribute(Station("Grand Army", 20), "serial") is False
     assert has_attribute(Bike("A1", "Grand Army", False), "minutes") is False
 
