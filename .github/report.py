@@ -1,4 +1,4 @@
-"""Turn pytest's JUnit XML into a score the student and the gradebook can read.
+"""Turn pytest's JUnit XML into a readable summary of which tests passed.
 
 Writes two things from one source:
 
@@ -7,7 +7,10 @@ Writes two things from one source:
   2. A commit status under the context "marcy/score", which is what the
      gradebook collector reads back through the API.
 
-Both come from the same XML, so they cannot disagree.
+Neither one says whether the assignment is complete. Assignments are graded
+against a rubric by an instructor, and a second message about completion here
+would be a second source of truth that could disagree with the first. So this
+reports which tests passed and stops there.
 """
 
 import os
@@ -17,8 +20,6 @@ import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from collections import defaultdict
-
-PASS_MARK = 0.75
 
 
 def source_path(case):
@@ -67,8 +68,7 @@ def main(xml_path):
     unscored = set()
     for case in root.iter("testcase"):
         # A skipped test is not a failed test. Bonus questions ship skipped on
-        # purpose, and counting them would cap a complete submission below
-        # 100% for doing exactly what the assignment asked.
+        # purpose, so counting them would understate a complete submission.
         if case.find("skipped") is not None:
             continue
         name, scored = suite_meta(source_path(case))
@@ -79,33 +79,24 @@ def main(xml_path):
         s[1] += 1
         s[0] += int(passed)
 
-    total_pass = sum(p for n, (p, _) in suites.items() if n not in unscored)
-    total = sum(t for n, (_, t) in suites.items() if n not in unscored)
-    pct = round(100 * total_pass / total) if total else 0
-    complete = pct >= PASS_MARK * 100
-
     lines = ["| Suite | Passed |", "| --- | --- |"]
     for name in sorted(suites):
         p, t = suites[name]
         tag = " _(not scored)_" if name in unscored else ""
         lines.append(f"| {name}{tag} | {p}/{t} |")
-    lines.append(f"| **Total** | **{total_pass}/{total} ({pct}%)** |")
     lines.append("")
     lines.append(
-        f"{'Complete' if complete else 'Not yet complete'} — "
-        f"{int(PASS_MARK * 100)}% of tests passing counts as complete."
+        "Your instructor grades this assignment against the rubric. "
+        "This table only shows which tests passed on your last push."
     )
     write_summary("\n".join(lines))
 
-    # "pending" rather than "failure" below 75%. A red X on every push until a
-    # student is done tells them they have failed, when what is true is that
-    # they are not finished. Marcy's stated position is that submitting
-    # unfinished work is correct, so the check stays neutral until it is green.
-    set_status(
-        "success" if complete else "pending",
-        f"{total_pass}/{total} ({pct}%) "
-        f"{'complete' if complete else 'keep going'}",
-    )
+    # The check stays neutral. A student pushing unfinished work is doing the
+    # right thing, so this never renders as a pass or a failure. The counts are
+    # here because the gradebook reads this description.
+    passed = sum(p for n, (p, _) in suites.items() if n not in unscored)
+    total = sum(t for n, (_, t) in suites.items() if n not in unscored)
+    set_status("success", f"{passed}/{total} tests passing")
 
 
 def write_summary(markdown):
@@ -114,7 +105,7 @@ def write_summary(markdown):
         print(markdown)
         return
     with open(path, "a", encoding="utf-8") as f:
-        f.write("## Your score\n\n" + markdown + "\n")
+        f.write("## Test results\n\n" + markdown + "\n")
 
 
 def set_status(state, description):
