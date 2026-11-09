@@ -395,22 +395,25 @@ instance, so each new member overwrites the last.
 
 ### Question 10: `Ride`
 
-Printing one ride looks right. Printing a list of them raises, and the ride
-details appear on screen before the traceback does, in a different order than
-the list.
+Printing a ride should show its details. Instead, printing one ride or a list of rides shows the details and then raises a `TypeError`.
 
 ```python
 ride = Ride(Member("Ada", 2), Bike("A1", "Grand Army", False), 45)
+
 print(ride)
-# Ride('Ada', 'A1', 45)  — looks correct
+# Ride('Ada', 'A1', 45)
+# TypeError: __str__ returned non-string (type NoneType)
+
 print([ride])
 # Ride('Ada', 'A1', 45)
 # TypeError: __repr__ returned non-string (type NoneType)
 ```
 
-A function that prints and never returns hands back `None`. Python needs
-`__repr__` to **give** it a string so that the caller can place it inside the
-list's own output.
+Run each `print()` on its own: the first error stops the program before the second line runs.
+
+> Hint: the details appear before the error, so `__repr__` did run, and it put the right text on the screen. Python failed afterwards, because of what `__repr__` handed back. A function that prints and never returns hands back `None`. The first error names `__str__` because a class with no `__str__` of its own uses `__repr__` when you print it.
+
+Python needs `__repr__` to **give** it a string, so that it can show that string as the object's text.
 
 ## Submitting
 
