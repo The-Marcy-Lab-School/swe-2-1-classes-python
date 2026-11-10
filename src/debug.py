@@ -3,8 +3,8 @@
 
 class Mechanic:
     def __init__(self, name, shift):
-        Mechanic.name = name
-        Mechanic.shift = shift
+        name = name
+        self.shift = shift
 
     def label(self):
         return f"{self.name} ({self.shift} shift)"

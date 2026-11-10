@@ -17,7 +17,7 @@ from modify import Dock
 TEST_SUITE_NAME = "Modify Tests"
 
 
-# ---------- Question 6: Dock ----------
+# ---------- Question 7: Dock ----------
 
 def test_dock_is_a_dataclass():
     """Dock - is written with @dataclass"""

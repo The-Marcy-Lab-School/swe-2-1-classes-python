@@ -2,7 +2,7 @@
 # This class is separate from your From Scratch answers, so you can start here at any time.
 
 
-# ---------- Question 6: Dock ----------
+# ---------- Question 7: Dock ----------
 
 class Dock:
     def __init__(self, station, number):

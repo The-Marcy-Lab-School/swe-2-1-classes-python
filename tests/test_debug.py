@@ -1,8 +1,8 @@
 def attributes_set_on(instance):
     """The attribute names stored on this instance rather than on its class.
 
-    An attribute assigned to the class itself is shared by every instance, so it
-    does not appear here. One assigned to self in __init__ does.
+    A value assigned to a plain variable in __init__ is gone once __init__
+    returns, so it does not appear here. One assigned to self does.
     """
     return set(vars(instance))
 
@@ -13,17 +13,17 @@ from debug import Mechanic, RepairTicket
 TEST_SUITE_NAME = "Debug Tests"
 
 
-# ---------- Question 7: Mechanic ----------
+# ---------- Question 8: Mechanic ----------
 
 def test_mechanic_stores_its_own_name_and_shift():
     """Mechanic - each mechanic reports the name and shift it was created with"""
     rosa = Mechanic("Rosa", "morning")
     dev = Mechanic("Dev", "evening")
 
-    assert rosa.name == "Rosa", "Creating a second mechanic should not change the first."
+    assert attributes_set_on(rosa) >= {"name", "shift"}, "__init__ should store both values on self."
+    assert rosa.name == "Rosa"
     assert rosa.shift == "morning"
     assert dev.name == "Dev"
-    assert attributes_set_on(rosa) >= {"name", "shift"}
 
 
 def test_mechanic_label():
@@ -34,7 +34,7 @@ def test_mechanic_label():
     assert rosa.label() == "Rosa (morning shift)"
 
 
-# ---------- Question 8: RepairTicket ----------
+# ---------- Question 9: RepairTicket ----------
 
 def test_repair_ticket_describes_itself():
     """RepairTicket - describe() returns the serial and the problem"""

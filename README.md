@@ -2,7 +2,7 @@
 
 Practice building classes that hold their own data, answer for themselves, print and compare themselves, and hold other objects.
 
-**Practicing:** classes, instances, `__init__`, `self`, methods, `__repr__`, `__eq__`, `@dataclass`, lists of objects, objects that hold other objects, `dir()`
+**Practicing:** classes, instances, `__init__`, `self`, methods, `__repr__`, `__eq__`, `@dataclass`, lists of objects, objects that hold other objects, refusals, pytest tests, `dir()`
 
 - [AI Use on This Assignment](#ai-use-on-this-assignment)
 - [Setup](#setup)
@@ -15,23 +15,21 @@ Practice building classes that hold their own data, answer for themselves, print
   - [Question 3: `Station`](#question-3-station)
   - [Question 4: `Member` and `Ride`](#question-4-member-and-ride)
   - [Question 5: `has_attribute`](#question-5-has_attribute)
+  - [Question 6: Testing the Station's Refusals](#question-6-testing-the-stations-refusals)
 - [Modify](#modify)
-  - [Question 6: `Dock`](#question-6-dock)
+  - [Question 7: `Dock`](#question-7-dock)
 - [Debug](#debug)
-  - [Question 7: `Mechanic`](#question-7-mechanic)
-  - [Question 8: `RepairTicket`](#question-8-repairticket)
+  - [Question 8: `Mechanic`](#question-8-mechanic)
+  - [Question 9: `RepairTicket`](#question-9-repairticket)
 - [Submitting](#submitting)
 - [Good luck!](#good-luck)
 
 ## AI Use on This Assignment
 
-Use whichever mode matches where you are with this material. Both are fine,
-and most people move between them as a concept clicks.
-
-**Tutor mode.** The AI explains, questions, quizzes, and critiques, and you
+Use AI in **tutor mode** on this assignment. The AI explains, questions, quizzes, and critiques, and you
 write every line you submit. For this assignment that means asking it what
-`self` refers to inside a method, or having it quiz you on where an attribute
-lives until you can say why two instances stopped sharing one. Ask it a
+`self` refers to inside a method, or having it quiz you on `==` and `is` until
+you can say why two equal bikes are still not the same object. Ask it a
 hundred questions — that is the whole point. What you do not do is ask it for
 the class. Paste this at the start of a chat and it will hold for the rest of
 the conversation:
@@ -83,7 +81,7 @@ This assignment has three sections:
 2. Modify
 3. Debug
 
-Every question follows the same order: a short story about Boro Bikes, a table that names everything you write, and examples to check your work against.
+Every From Scratch question follows the same order: a short story about Boro Bikes, a table that names everything you write, and examples to check your work against.
 
 ### Ideas to look for
 
@@ -94,13 +92,16 @@ Each question depends on one or more of these ideas. Part of the work is decidin
 | A class is a blueprint for making objects. Calling it, as in `Bike("A1", "Grand Army", False)`, makes an object called an instance, and `__init__` stores the values you passed in on that instance. | 2.1    |
 | When you call `bike.is_rentable()`, Python passes `bike` into the method as its first parameter, `self`.                                                                                             | 2.1    |
 | Keep a rule and the data it is about within the same class: a bike answers whether _it_ can be rented.                                                                                               | 2.1    |
-| A value assigned to `self`, as in `self.serial = serial`, belongs to one instance. A value assigned to the class itself is shared by every instance.                                                 | 2.2    |
+| A value lasts beyond `__init__` only if it is assigned to `self`, as in `self.serial = serial`.                                                                                                      | 2.1    |
 | An object can hold other objects as attributes, and you reach the inner object's data with more dots: `ride.member.name`.                                                                            | 2.2    |
 | A method that reports on an object's data should return a new list and leave the object's own list unchanged.                                                                                        | 2.2    |
 | `__repr__`, the method Python calls to show an object as text, must return a string, not print one.                                                                                                  | 2.2    |
 | `==` calls `__eq__`. Without one, `==` only asks whether two names refer to the same object, which is what `is` asks.                                                                                | 2.2    |
+| `in` checks each item of a list with `==`, so a class with `__eq__` lets a method find an equal object it already holds.                                                                             | 2.2    |
+| A method can refuse an action that would break its object's data: it prints why and changes nothing.                                                                                                 | 2.2    |
+| A refusal that stops working crashes nothing, so a pytest test tries the refused action and asserts that the data did not change.                                                                    | 2.2    |
 | `@dataclass`, written on the line above a class, writes `__init__`, `__repr__`, and `__eq__` for you from the attributes you list.                                                                   | 2.2    |
-| A method is stored on the class, not on each instance. `dir()` lists every attribute and method an object can use, including the ones stored on its class.                                           | 2.2    |
+| A method is stored on the class, not on each instance. `dir()` lists every attribute and method an object can use, including the ones stored on its class.                                           | 2.1    |
 
 ### Look these up yourself
 
@@ -110,7 +111,7 @@ No lesson teaches this built-in function, and this assignment needs it:
 
 ## From Scratch
 
-Write these classes and functions in `src/from_scratch.py`. The questions build one system, so do them in order: Questions 2 to 5 use your `Bike` from Question 1.
+Write these classes and functions in `src/from_scratch.py`. The questions build one system, so do them in order: Questions 2 to 6 use your `Bike` from Question 1.
 
 ### Question 1: `Bike`
 
@@ -153,21 +154,28 @@ print([bike])     # [Bike('A1', 'Grand Army', False)]
 first_bike = Bike("A1", "Grand Army", False)
 second_bike = Bike("A1", "Borough Hall", True)
 first_bike == second_bike   # True — the same serial means the same bike
-second_bike is second_bike   # False — they are still two separate objects so this is expected
+first_bike is second_bike   # False — they are still two separate objects so this is expected
 ```
 
 ### Question 3: `Station`
 
-Boro Bikes has forty stations and needs a way to represent them. A station has a number of docks, its capacity, and each dock holds one bike.
+Boro Bikes has forty stations and needs a way to represent them. A station has a number of docks, its capacity, and each dock holds one bike. A bike that is already docked at a station cannot be docked there again, and a station whose docks are all full cannot take another bike.
 
-Write a class called `Station` that has a name, a capacity of docks, and a list of bikes currently docked. It should also answer the questions "which bikes are rentable from this station?" and "which bikes need a repair from this station?"
+Write a class called `Station` that has a name, a capacity of docks, and a list of bikes currently docked. It should also answer the questions "which bikes are rentable from this station?" and "which bikes need a repair from this station?", and refuse to dock a bike that is already docked or that arrives when the station is full.
 
 | Write           | Takes                         | Does                                                                               |
 | --------------- | ----------------------------- | ---------------------------------------------------------------------------------- |
 | `__init__`      | a station name and a capacity | Stores them as `name` and `capacity`, and starts an empty list of bikes as `bikes` |
-| `dock(bike)`    | one `Bike`                    | Adds the bike to `bikes`                                                           |
+| `dock(bike)`    | one `Bike`                    | Adds the bike to `bikes`, unless the station refuses it                            |
 | `rentable()`    | nothing                       | Returns a **new** list of the bikes that can be rented                             |
 | `repair_list()` | nothing                       | Returns a **new** list of the bikes that cannot be rented                          |
+
+`dock()` refuses a bike in two cases. Each refusal prints a message and leaves `bikes` unchanged:
+
+| When                                                          | Prints                                |
+| ------------------------------------------------------------- | ------------------------------------- |
+| the bike is equal to a bike already in `bikes`                | `A1 is already docked at Grand Army.` |
+| `bikes` already holds as many bikes as the station's capacity | `Grand Army is full.`                 |
 
 Ask each bike whether it is rentable, with `bike.is_rentable()`, rather than checking its `needs_repair` yourself.
 
@@ -179,6 +187,13 @@ station.dock(Bike("A2", "Grand Army", False))
 station.rentable()               # [Bike('A2', 'Grand Army', False)]
 station.repair_list()            # [Bike('A1', 'Grand Army', True)]
 Station("Empty", 8).rentable()   # [] — a new station has no bikes
+
+small = Station("Borough Hall", 2)
+small.dock(Bike("B1", "Borough Hall", False))
+small.dock(Bike("B1", "Borough Hall", False))   # B1 is already docked at Borough Hall.
+small.dock(Bike("B2", "Borough Hall", True))
+small.dock(Bike("B3", "Borough Hall", False))   # Borough Hall is full.
+len(small.bikes)                                # 2
 ```
 
 ### Question 4: `Member` and `Ride`
@@ -224,11 +239,32 @@ has_attribute(station, "serial")      # False — a station has no serial
 has_attribute("A1", "upper")          # True — it works on any object, not only yours
 ```
 
+### Question 6: Testing the Station's Refusals
+
+A refusal that stops working does not crash anything. A station that docks the same bike twice, or one bike more than it has docks, just reports the wrong bikes, and a rider is the first to notice.
+
+Write two pytest tests for your `Station` that answer the questions "does a station refuse a bike that is already docked?" and "does a full station refuse another bike?" Write them in `my_tests/test_station_refusals.py`, which already imports `Bike` and `Station` and names both tests for you.
+
+| Write                                             | Does                                                                                                               |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `test_docking_a_bike_already_docked_is_refused()` | Docks a bike, docks an equal bike a second time, and asserts that the station still holds one bike                 |
+| `test_docking_at_a_full_station_is_refused()`     | Fills a station to its capacity, docks one more bike, and asserts that the station holds no more than its capacity |
+
+Run your tests with:
+
+```sh
+pytest my_tests
+```
+
+Both tests should pass once your `Station` from Question 3 works. The assignment's own tests then check your tests twice: once against a station that works, where each of your tests must pass, and once against a station with that refusal removed, where each of your tests must fail. A test that still passes when the refusal is broken would not catch the mistake it is there to catch.
+
+> Your tests go in `my_tests/` rather than `tests/` because `tests/` is replaced with the assignment's own tests when your work is graded, so anything you write there is lost.
+
 ## Modify
 
 Change the code in `src/modify.py`. Its class is separate from your From Scratch answers, so you can start here before From Scratch is finished.
 
-### Question 6: `Dock`
+### Question 7: `Dock`
 
 `Dock` records where a bike is parked: a station and a dock number. Its three hand-written methods, `__init__`, `__repr__`, and `__eq__`, only store, print, and compare those two values.
 
@@ -247,25 +283,20 @@ dock == Dock("Grand Army", 5)   # False
 
 Fix the code in `src/debug.py`.
 
-### Question 7: `Mechanic`
+### Question 8: `Mechanic`
 
-`Mechanic` should hold one mechanic's name and the shift they work. Every mechanic on the repair schedule shows the same name and shift instead, and it is always whoever was added most recently.
+`Mechanic` should hold one mechanic's name and the shift they work. Asking a mechanic for their label raises an error instead:
 
 ```python
 rosa = Mechanic("Rosa", "morning")
-dev = Mechanic("Dev", "evening")
-
-rosa.name
-# want "Rosa"
-# "Dev" — creating the second mechanic changed the first one
 rosa.label()
 # want "Rosa (morning shift)"
-# "Dev (evening shift)"
+# AttributeError: 'Mechanic' object has no attribute 'name'
 ```
 
-> Hint: check where `__init__` stores each value.
+> Hint: the error appears when `label()` reads `self.name`. Check whether `__init__` ever stored it there.
 
-### Question 8: `RepairTicket`
+### Question 9: `RepairTicket`
 
 A repair ticket should describe the bike it is for. Calling `describe()` raises an error instead:
 

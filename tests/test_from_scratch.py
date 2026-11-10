@@ -1,6 +1,10 @@
 import ast
+import importlib.util
 import inspect
 import textwrap
+from pathlib import Path
+
+import pytest
 
 
 def attributes_set_on(instance):
@@ -145,6 +149,28 @@ def test_new_station_has_no_bikes_to_list():
     assert station.repair_list() == []
 
 
+def test_station_refuses_a_bike_already_docked(capsys):
+    """Station - dock() refuses a bike equal to one already docked, and says why"""
+    station = Station("Grand Army", 20)
+    station.dock(Bike("A1", "Grand Army", False))
+    station.dock(Bike("A1", "Grand Army", False))
+
+    assert len(station.bikes) == 1, \
+        "`in` compares with ==, so Bike.__eq__ lets dock() find the equal bike and refuse it."
+    assert capsys.readouterr().out.strip() == "A1 is already docked at Grand Army."
+
+
+def test_full_station_refuses_another_bike(capsys):
+    """Station - dock() refuses a bike when every dock is full, and says why"""
+    station = Station("Borough Hall", 2)
+    station.dock(Bike("B1", "Borough Hall", False))
+    station.dock(Bike("B2", "Borough Hall", False))
+    station.dock(Bike("B3", "Borough Hall", False))
+
+    assert [bike.serial for bike in station.bikes] == ["B1", "B2"]
+    assert capsys.readouterr().out.strip() == "Borough Hall is full."
+
+
 # ---------- Question 4: Member and Ride ----------
 
 def test_member_stores_its_name():
@@ -215,3 +241,98 @@ def test_has_attribute_works_on_any_object():
 def test_has_attribute_does_not_call_hasattr():
     """has_attribute - finds the answer without calling hasattr()"""
     assert not calls_hasattr(has_attribute), "Write your own check instead of calling hasattr()."
+
+
+# ---------- Question 6: Testing the Station's Refusals ----------
+
+YOUR_TESTS = Path(__file__).parent.parent / "my_tests" / "test_station_refusals.py"
+
+
+class WorkingBike:
+    def __init__(self, serial, station, needs_repair):
+        self.serial = serial
+        self.station = station
+        self.needs_repair = needs_repair
+
+    def is_rentable(self):
+        return not self.needs_repair
+
+    def __eq__(self, other):
+        return self.serial == other.serial
+
+
+class WorkingStation:
+    def __init__(self, name, capacity):
+        self.name = name
+        self.capacity = capacity
+        self.bikes = []
+
+    def dock(self, bike):
+        if bike in self.bikes:
+            print(f"{bike.serial} is already docked at {self.name}.")
+            return
+        if len(self.bikes) >= self.capacity:
+            print(f"{self.name} is full.")
+            return
+        self.bikes.append(bike)
+
+
+class StationThatDocksTwice(WorkingStation):
+    def dock(self, bike):
+        if len(self.bikes) >= self.capacity:
+            print(f"{self.name} is full.")
+            return
+        self.bikes.append(bike)
+
+
+class StationThatOverfills(WorkingStation):
+    def dock(self, bike):
+        if bike in self.bikes:
+            print(f"{bike.serial} is already docked at {self.name}.")
+            return
+        self.bikes.append(bike)
+
+
+def your_test(name, station_class, monkeypatch):
+    """One of the fellow's tests, set to run against the given station class.
+
+    Their file imports Bike and Station from from_scratch. Replacing both names
+    in the loaded file grades the test itself, whatever state their own
+    classes are in.
+    """
+    spec = importlib.util.spec_from_file_location("your_station_tests", YOUR_TESTS)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setattr(module, "Bike", WorkingBike)
+    monkeypatch.setattr(module, "Station", station_class)
+    test = getattr(module, name, None)
+    assert test is not None, f"Keep the name {name} for your test in {YOUR_TESTS.name}."
+    return test
+
+
+def test_your_already_docked_test_catches_a_broken_refusal(monkeypatch):
+    """Your tests - the already-docked test passes on a working station and fails when the refusal is removed"""
+    name = "test_docking_a_bike_already_docked_is_refused"
+
+    your_test(name, WorkingStation, monkeypatch)()
+
+    broken_test = your_test(name, StationThatDocksTwice, monkeypatch)
+    try:
+        broken_test()
+    except AssertionError:
+        return
+    pytest.fail("Your test passed against a station that docks the same bike twice, so it would not catch that mistake.")
+
+
+def test_your_full_station_test_catches_a_broken_refusal(monkeypatch):
+    """Your tests - the full-station test passes on a working station and fails when the refusal is removed"""
+    name = "test_docking_at_a_full_station_is_refused"
+
+    your_test(name, WorkingStation, monkeypatch)()
+
+    broken_test = your_test(name, StationThatOverfills, monkeypatch)
+    try:
+        broken_test()
+    except AssertionError:
+        return
+    pytest.fail("Your test passed against a station that docks more bikes than its capacity, so it would not catch that mistake.")
