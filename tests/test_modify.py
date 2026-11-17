@@ -33,10 +33,10 @@ def test_dock_has_no_hand_written_methods():
 
 def test_dock_prints_and_compares_as_before():
     """Dock - prints and compares exactly as the hand-written version did"""
-    dock = Dock("Grand Army", 4)
+    dock = Dock("Grand Army", number=4)
 
     assert dock.station == "Grand Army"
     assert dock.number == 4
     assert repr(dock) == "Dock(station='Grand Army', number=4)"
-    assert dock == Dock("Grand Army", 4)
-    assert dock != Dock("Grand Army", 5)
+    assert dock == Dock("Grand Army", number=4)
+    assert dock != Dock("Grand Army", number=5)
