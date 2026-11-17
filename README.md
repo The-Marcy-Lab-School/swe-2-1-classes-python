@@ -89,7 +89,7 @@ Each question depends on one or more of these ideas. Part of the work is decidin
 
 | Idea                                                                                                                                                                                                 | Lesson |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| A class is a blueprint for making objects. Calling it, as in `Bike("A1", "Grand Army", False)`, makes an object called an instance, and `__init__` stores the values you passed in on that instance. | 2.1    |
+| A class is a blueprint for making objects. Calling it, as in `Bike("A1", "Grand Army", needs_repair=False)`, makes an object called an instance, and `__init__` stores the values you passed in on that instance. | 2.1    |
 | When you call `bike.is_rentable()`, Python passes `bike` into the method as its first parameter, `self`.                                                                                             | 2.1    |
 | Keep a rule and the data it is about within the same class: a bike answers whether _it_ can be rented.                                                                                               | 2.1    |
 | A value lasts beyond `__init__` only if it is assigned to `self`, as in `self.serial = serial`.                                                                                                      | 2.1    |
@@ -113,6 +113,8 @@ No lesson teaches this built-in function, and this assignment needs it:
 
 Write these classes and functions in `src/from_scratch.py`. The questions build one system, so do them in order: Questions 2 to 6 use your `Bike` from Question 1.
 
+The examples pass every number and every `True` or `False` by keyword, as in `Station("Grand Army", capacity=20)`, so that each value says what it is. Give each `__init__` parameter the name the examples use, or those calls will not run.
+
 ### Question 1: `Bike`
 
 Boro Bikes is a public bike ride-share. It rents out bikes from stations around the city. Each bike has a serial number, is parked at one station, and either needs a repair or does not.
@@ -125,11 +127,11 @@ Write a class called `Bike` that has a serial, a station name, and whether it ne
 | `is_rentable()` | nothing                                                     | Returns `True` when the bike does **not** need repair                  |
 
 ```python
-good = Bike("A1", "Grand Army", False)
+good = Bike("A1", "Grand Army", needs_repair=False)
 good.serial            # "A1"
 good.is_rentable()     # True — nothing is wrong with it
 
-broken = Bike("B7", "Borough Hall", True)
+broken = Bike("B7", "Borough Hall", needs_repair=True)
 broken.is_rentable()   # False — it needs repair, so nobody can take it
 ```
 
@@ -147,12 +149,12 @@ Add two methods to your `Bike` so that printing a bike shows its three values, a
 | `__eq__(other)` | another `Bike` | Returns `True` when the two bikes have the same serial                            |
 
 ```python
-bike = Bike("A1", "Grand Army", False)
+bike = Bike("A1", "Grand Army", needs_repair=False)
 print(bike)       # Bike('A1', 'Grand Army', False)
 print([bike])     # [Bike('A1', 'Grand Army', False)]
 
-first_bike = Bike("A1", "Grand Army", False)
-second_bike = Bike("A1", "Borough Hall", True)
+first_bike = Bike("A1", "Grand Army", needs_repair=False)
+second_bike = Bike("A1", "Borough Hall", needs_repair=True)
 first_bike == second_bike   # True — the same serial means the same bike
 first_bike is second_bike   # False — they are still two separate objects so this is expected
 ```
@@ -180,20 +182,20 @@ Write a class called `Station` that has a name, a capacity of docks, and a list 
 In `rentable()`, ask each bike whether it is rentable, with `bike.is_rentable()`, rather than checking its `needs_repair` yourself.
 
 ```python
-station = Station("Grand Army", 20)
-station.dock(Bike("A1", "Grand Army", True))
-station.dock(Bike("A2", "Grand Army", False))
+station = Station("Grand Army", capacity=20)
+station.dock(Bike("A1", "Grand Army", needs_repair=True))
+station.dock(Bike("A2", "Grand Army", needs_repair=False))
 
-station.rentable()               # [Bike('A2', 'Grand Army', False)]
-station.repair_list()            # [Bike('A1', 'Grand Army', True)]
-Station("Empty", 8).rentable()   # [] — a new station has no bikes
+station.rentable()                        # [Bike('A2', 'Grand Army', False)]
+station.repair_list()                     # [Bike('A1', 'Grand Army', True)]
+Station("Empty", capacity=8).rentable()   # [] — a new station has no bikes
 
-small = Station("Borough Hall", 2)
-small.dock(Bike("B1", "Borough Hall", False))
-small.dock(Bike("B1", "Borough Hall", False))   # B1 is already docked at Borough Hall.
-small.dock(Bike("B2", "Borough Hall", True))
-small.dock(Bike("B3", "Borough Hall", False))   # Borough Hall is full.
-len(small.bikes)                                # 2
+small = Station("Borough Hall", capacity=2)
+small.dock(Bike("B1", "Borough Hall", needs_repair=False))
+small.dock(Bike("B1", "Borough Hall", needs_repair=False))   # B1 is already docked at Borough Hall.
+small.dock(Bike("B2", "Borough Hall", needs_repair=True))
+small.dock(Bike("B3", "Borough Hall", needs_repair=False))   # Borough Hall is full.
+len(small.bikes)                                             # 2
 ```
 
 ### Question 4: `Member` and `Ride`
@@ -211,7 +213,7 @@ Write a class called `Member` that has a name and a separate class called `Ride`
 
 ```python
 ada = Member("Ada")
-ride = Ride(ada, Bike("A1", "Grand Army", False), 45)
+ride = Ride(ada, Bike("A1", "Grand Army", needs_repair=False), minutes=45)
 
 ride.member.name   # "Ada" — reach through the ride to its member
 ride.bike.serial   # "A1"
@@ -230,8 +232,8 @@ Write a stand-alone function called `has_attribute` that answers the question "d
 | `has_attribute(obj, name)` | any object, and a name as a string | Returns `True` when `obj` has an attribute or a method called `name`, and `False` when it does not. **Do not call `hasattr()`.** |
 
 ```python
-bike = Bike("A1", "Grand Army", False)
-station = Station("Grand Army", 20)
+bike = Bike("A1", "Grand Army", needs_repair=False)
+station = Station("Grand Army", capacity=20)
 
 has_attribute(bike, "serial")         # True — __init__ stored it on the bike
 has_attribute(bike, "is_rentable")    # True — a method counts too
@@ -273,10 +275,10 @@ Rewrite `Dock` with `@dataclass`, so that `@dataclass` writes all three methods 
 These lines must give the same results before and after your change:
 
 ```python
-dock = Dock("Grand Army", 4)
-print(dock)                     # Dock(station='Grand Army', number=4)
-dock == Dock("Grand Army", 4)   # True
-dock == Dock("Grand Army", 5)   # False
+dock = Dock("Grand Army", number=4)
+print(dock)                            # Dock(station='Grand Army', number=4)
+dock == Dock("Grand Army", number=4)   # True
+dock == Dock("Grand Army", number=5)   # False
 ```
 
 ## Debug
