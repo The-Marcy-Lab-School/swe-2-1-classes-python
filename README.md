@@ -168,7 +168,7 @@ Write a class called `Station` that has a name, a capacity of docks, and a list 
 | `__init__`      | a station name and a capacity | Stores them as `name` and `capacity`, and starts an empty list of bikes as `bikes` |
 | `dock(bike)`    | one `Bike`                    | Adds the bike to `bikes`, unless the station refuses it                            |
 | `rentable()`    | nothing                       | Returns a **new** list of the bikes that can be rented                             |
-| `repair_list()` | nothing                       | Returns a **new** list of the bikes that cannot be rented                          |
+| `repair_list()` | nothing                       | Returns a **new** list of the bikes that need a repair                             |
 
 `dock()` refuses a bike in two cases. Each refusal prints a message and leaves `bikes` unchanged:
 
@@ -177,7 +177,7 @@ Write a class called `Station` that has a name, a capacity of docks, and a list 
 | the bike is equal to a bike already in `bikes`                | `A1 is already docked at Grand Army.` |
 | `bikes` already holds as many bikes as the station's capacity | `Grand Army is full.`                 |
 
-Ask each bike whether it is rentable, with `bike.is_rentable()`, rather than checking its `needs_repair` yourself.
+In `rentable()`, ask each bike whether it is rentable, with `bike.is_rentable()`, rather than checking its `needs_repair` yourself.
 
 ```python
 station = Station("Grand Army", 20)

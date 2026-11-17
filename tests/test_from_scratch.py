@@ -138,7 +138,6 @@ def test_station_asks_each_bike():
 
     assert [bike.serial for bike in station.rentable()] == ["A1"], \
         "Ask each bike bike.is_rentable(); the rule lives in Bike."
-    assert [bike.serial for bike in station.repair_list()] == ["A2"]
 
 
 def test_new_station_has_no_bikes_to_list():
